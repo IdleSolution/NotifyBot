@@ -14,7 +14,9 @@ namespace NotifyBot.Services
             {
                 new ForumPosts(channel, "https://myanimelist.net/forum/search?u=IdleSolution&q=&uloc=1&loc=-1"),
                 new Chapters(channel,
-                    "https://mangadex.org/title/17274/kaguya-sama-wa-kokurasetai-tensai-tachi-no-renai-zunousen")
+                    "https://mangadex.org/title/17274/kaguya-sama-wa-kokurasetai-tensai-tachi-no-renai-zunousen"),
+                new Chapters(channel, "https://mangadex.org/title/21843/karakai-jouzu-no-moto-takagi-san"),
+                new Chapters(channel, "https://mangadex.org/title/13108/karakai-jouzu-no-takagi-san")
 
             };
 
