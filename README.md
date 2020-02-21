@@ -7,13 +7,13 @@ The bot has the ability to subscribe to various sites and then notify you when s
 
 Supported commands:
 
- - !subscribe mangadex <link>
- - !subscribe mal <link>
- - !unsubscribe mangadex <link>
- - !unsubscribe mal <link>
- - !purge <amount>
+ - !subscribe mangadex [link]
+ - !subscribe mal [link]
+ - !unsubscribe mangadex [link]
+ - !unsubscribe mal [link]
+ - !purge [amount]
 
-If you want to use the bot by downloading it directly from github, you need to make your own files from Helpers/Paths (these txt files serve as a dummy database)
+If you want to use the bot by downloading it directly from github, you need to make your own files from Helpers/Paths.cs (these txt files serve as a dummy database)
 
 ## NuGet packages the project is using:
 * Discord.Net - version 2.1.1
