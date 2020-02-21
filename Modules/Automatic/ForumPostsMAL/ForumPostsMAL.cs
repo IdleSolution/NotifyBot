@@ -4,32 +4,39 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
+using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
 using HtmlAgilityPack;
 using NotifyBot.Interfaces;
+using NotifyBot.Services;
 
 namespace NotifyBot.Modules.ForumPostsMAL
 {
-    public class ForumPosts : IIntervalActions
+    public class ForumPostsMal : IIntervalActions
     {
         public string Url { get; set; }
         public SocketTextChannel Channel { get; set; }
-        private const string PostsStoragePath = @"C:\Users\idles\Desktop\NotifyBot\postsStorage.txt";
         private readonly List<FrequentPosts> _posts = new List<FrequentPosts>();
+        
+        public ForumPostsMal(string url)
+        {
+            Url = url;
+        }
 
-        public ForumPosts(SocketTextChannel channel, string url)
+        public ForumPostsMal(SocketTextChannel channel, string url)
         {
             Url = url;
             Channel = channel;
         }
 
-        public void StartExecution()
+        public async void StartExecution()
         {
-            GetNewestPostsAsync();
+            await GetNewestPostsAsync();
+            CheckForChanges();
         }
         
-        private async void GetNewestPostsAsync()
+        public async Task<List<FrequentPosts>> GetNewestPostsAsync()
         {
             var httpClient = new HttpClient();
             var html = await httpClient.GetStringAsync(Url);
@@ -56,19 +63,34 @@ namespace NotifyBot.Modules.ForumPostsMAL
                     Href = href
                 });
             }
-            
-            CheckForChanges();
+
+            return _posts;
         }
 
         private void CheckForChanges()
         {
+            var previousPosts = File.ReadAllLines(Paths.PostsStorageMal);
+            var userNumber = 0;
+            var certainPreviousPosts = new List<string>();
+            for (int i = 0; i < previousPosts.Length; i++)
+            {
+                if (previousPosts[i].Split(" ")[0] == Url)
+                {
+                    userNumber = i;
+                    var tempPosts = previousPosts[i].Split(" ");
+                    for (int j = 1; j < tempPosts.Length; j++)
+                    {
+                        certainPreviousPosts.Add(tempPosts[j]);
+                    }
+                }
+            }
+ 
             var text = "";
-            var previousPosts = File.ReadAllText(PostsStoragePath).Split(" ");
             var changed = false;
 
             foreach (var post in _posts)
             {
-                if (!previousPosts.Contains(post.Title.Replace(" ", "")))
+                if (!certainPreviousPosts.Contains(post.Title.Replace(" ", "")))
                 {
                     GetSinglePostAsync(post.Href);
                     changed = true;
@@ -78,7 +100,8 @@ namespace NotifyBot.Modules.ForumPostsMAL
 
             if (changed)
             {
-                File.WriteAllText(PostsStoragePath, text);
+                previousPosts[userNumber] = Url + " " + text;
+                File.WriteAllLines(Paths.ChaptersStorageMangadex, previousPosts);
                 changed = false;
             }
         }
@@ -115,13 +138,13 @@ namespace NotifyBot.Modules.ForumPostsMAL
 
         private async void SendNotification(string desc, string href)
         {
-            var message = new EmbedBuilder {Title = $"New MAL post from {GetUsername()}!", Description = desc}.Build();
+            var message = new EmbedBuilder {Title = $"New MAL post from {GetMalUsernameFromLink()}!", Description = desc}.Build();
 
             await Channel.SendMessageAsync("", false, message);
         }
 
         // I don't like regex, okay?
-        private string GetUsername()
+        public string GetMalUsernameFromLink()
         {
             var username = new StringBuilder();
             var remember = false;

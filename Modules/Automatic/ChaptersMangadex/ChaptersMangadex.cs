@@ -2,32 +2,39 @@
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
 using HtmlAgilityPack;
 using NotifyBot.Interfaces;
+using NotifyBot.Services;
 
 namespace NotifyBot.Modules.MangadexChapter
 {
-    public class Chapters : IIntervalActions
+    public class ChaptersMangadex : IIntervalActions
     {
         public SocketTextChannel Channel { get; set; }
-        private const string ChaptersStoragePath = @"C:\Users\idles\Desktop\NotifyBot\chaptersStorage.txt";
         private FrequentChapter _chapter;
         public string Url { get; set; }
+        
+        public ChaptersMangadex(string url)
+        {
+            Url = url;
+        }
 
-        public Chapters(SocketTextChannel channel, string url)
+        public ChaptersMangadex(SocketTextChannel channel, string url)
         {
             Channel = channel;
             Url = url;
         }
 
-        public void StartExecution()
+        public async void StartExecution()
         {
-            GetNewestChaptersAsync();
+            await GetNewestChapterAsync();
+            CheckForChanges();
         }
 
-        private async void GetNewestChaptersAsync()
+        public async Task<FrequentChapter> GetNewestChapterAsync()
         {
             var httpClient = new HttpClient();
             var html = await httpClient.GetStringAsync(Url);
@@ -54,26 +61,37 @@ namespace NotifyBot.Modules.MangadexChapter
                 .Descendants("span").First(node => node.GetAttributeValue("class", "").Equals("mx-1")).InnerHtml;
 
             _chapter = new FrequentChapter() {Href = chapterHref, Number = chapterNumber, Lang = chapterLang, Name = chapterName};
-            
-            CheckForChanges();
-        }
 
+            return _chapter;
+        }
+        
         private void CheckForChanges()
         {
-            var previousNumber = File.ReadAllText(ChaptersStoragePath);
+            var previousChapters = File.ReadAllLines(Paths.ChaptersStorageMangadex);
 
-            if (_chapter.Number != previousNumber && _chapter.Lang == "English")
+            for (int i = 0; i < previousChapters.Length; i++)
             {
-                SendNotification();
-                File.WriteAllText(ChaptersStoragePath, _chapter.Number);
+                if (Url == previousChapters[i].Split(" ")[0])
+                {
+                    if (_chapter.Number != previousChapters[i].Split(" ")[1] && _chapter.Lang == "English")
+                    {
+                        SendNotification();
+                        previousChapters[i] = $"{Url} {(Convert.ToInt32(previousChapters[i].Split(" ")[1]) + 1)}";
+                        File.WriteAllLines(Paths.ChaptersStorageMangadex, previousChapters);
+                    }
+                }
             }
+
+
         }
 
         private async void SendNotification()
         {
-            var embed = new EmbedBuilder();
-            embed.Title = "New chapter available!";
-            embed.Description = $"{_chapter.Number}th chapter of {_chapter.Name} just came out on mangadex.org!";
+            var embed = new EmbedBuilder
+            {
+                Title = "New chapter available!",
+                Description = $"{_chapter.Number}th chapter of {_chapter.Name} just came out on mangadex.org!"
+            };
             var message = embed.WithUrl("https://mangadex.org" + _chapter.Href).Build();
             
             await Channel.SendMessageAsync("", false, message);

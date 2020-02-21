@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.IO;
 using Discord.WebSocket;
 using NotifyBot.Interfaces;
 using NotifyBot.Modules.ForumPostsMAL;
@@ -10,15 +11,32 @@ namespace NotifyBot.Services
     {
         public List<IIntervalActions> GetActions(SocketTextChannel channel)
         {
-            var allActions = new List<IIntervalActions>()
-            {
-                new ForumPosts(channel, "https://myanimelist.net/forum/search?u=IdleSolution&q=&uloc=1&loc=-1"),
-                new Chapters(channel,
-                    "https://mangadex.org/title/17274/kaguya-sama-wa-kokurasetai-tensai-tachi-no-renai-zunousen")
+            var allActions = new List<IIntervalActions>();
 
-            };
+            MangadexActions(channel, allActions);
+            MalActions(channel, allActions);
 
             return allActions;
+        }
+
+        private void MangadexActions(SocketTextChannel channel, ICollection<IIntervalActions> list)
+        {
+            var subscribedArr = File.ReadAllLines(Paths.SubscribedMangadex);
+
+            foreach (var sub in subscribedArr)
+            {
+                list.Add(new ChaptersMangadex(channel, sub));
+            }
+        }
+        
+        private void MalActions(SocketTextChannel channel, ICollection<IIntervalActions> list)
+        {
+            var subscribedArr = File.ReadAllLines(Paths.SubscribedMal);
+
+            foreach (var sub in subscribedArr)
+            {
+                list.Add(new ForumPostsMal(channel, sub));
+            }
         }
     }
 }
